@@ -250,24 +250,29 @@ Wielomian będzie "rozciągnięty" poza zakres czujników, ale wyniki w obszarac
 ### Wirtualne czujniki (NOWOŚĆ!)
 
 **Co to jest?**
-- Automatycznie dodawane **3 punkty referencyjne** przed pierwszym i **3 za ostatnim** czujnikiem
-- **Lewe wirtualne czujniki** (wszystkie 3) mają temperaturę równą **pierwszemu rzeczywistemu czujnikowi**
-- **Prawe wirtualne czujniki** (wszystkie 3) mają temperaturę równą **ostatniemu rzeczywistemu czujnikowi**
-- Umieszczone na pozycjach:
-  - Lewe: **(min_czujnik - 3), (min_czujnik - 2), (min_czujnik - 1) m**
-  - Prawe: **(max_czujnik + 1), (max_czujnik + 2), (max_czujnik + 3) m**
+- Automatycznie dodawane **punkty referencyjne** przed pierwszym i za ostatnim czujnikiem
+- **Liczba czujników adaptuje się do stopnia wielomianu**: minimum 5, więcej dla wyższych stopni
+- Formuła: `liczba = max(5, stopień/2 + 2)`
+  - Stopień 3: 5 wirtualnych czujników
+  - Stopień 10: 7 wirtualnych czujników
+  - Stopień 20: 12 wirtualnych czujników
+- **Lewe wirtualne czujniki** mają temperaturę równą **pierwszemu rzeczywistemu czujnikowi**
+- **Prawe wirtualne czujniki** mają temperaturę równą **ostatniemu rzeczywistemu czujnikowi**
+- Umieszczone co **2 metry** od skrajnych czujników:
+  - Lewe: (min - 10m), (min - 8m), (min - 6m), (min - 4m), (min - 2m)
+  - Prawe: (max + 2m), (max + 4m), (max + 6m), (max + 8m), (max + 10m)
 
 **Dlaczego warto używać?**
 - **Tworzą płaską ekstrapolację** - temperatura pozostaje stabilna poza zakresem pomiarów
-- **Zapobiegają "górkom" i oscylacjom** wielomianu w obszarach ekstrapolacji
-- Szczególnie przydatne dla wielomianów wyższych stopni (3+)
-- **3 czujniki na każdym końcu** to minimalana liczba gwarantująca stabilność
+- **Eliminują "górki" i oscylacje** wielomianu w obszarach ekstrapolacji
+- **Adaptacyjna liczba** - więcej czujników dla bardziej skomplikowanych wielomianów
+- Szczególnie istotne dla wielomianów wysokich stopni (>5)
 - Odzwierciedlają realistyczne założenie, że temperatura przed pierwszym i za ostatnim czujnikiem jest podobna do skrajnych pomiarów
 
-**Dlaczego 3 czujniki?**
-- 1 wirtualny czujnik: wielomian może tworzyć "górkę" między skrajnym a wirtualnym
-- 2 wirtualne czujniki: może wystąpić minimalna oscylacja
-- **3 wirtualne czujniki: zapewniają stabilną, płaską ekstrapolację** ✅
+**Dlaczego adaptacyjna liczba?**
+- **Wielomian stopnia 3**: 5 wirtualnych czujników wystarcza
+- **Wielomian stopnia 10**: potrzeba 7+ czujników, żeby stabilizować oscylacje
+- Im wyższy stopień → tym bardziej "dziki" wielomian → tym więcej punktów stabilizujących
 
 **Kiedy używać?**
 - ✅ **Włączone domyślnie** - zalecane dla większości zastosowań
@@ -279,17 +284,19 @@ Wielomian będzie "rozciągnięty" poza zakres czujników, ale wyniki w obszarac
 
 **Przykład:**
 ```
-Długość światłowodu: 100 m
-Czujniki: T1=10m (22°C), T2=30m (35°C), T3=60m (28°C), T4=90m (24°C)
+Długość światłowodu: 650 m
+Czujniki: T1=10m (-2.3°C), T2=210m (-0.8°C), T3=380m (-0.3°C),
+          T4=480m (-1.1°C), T5=550m (-1.2°C)
+Stopień wielomianu: 10
 
-Wirtualne czujniki:
-- Lewe: pozycje 7m, 8m, 9m - wszystkie z temperaturą 22°C (= T1)
-- Prawe: pozycje 91m, 92m, 93m - wszystkie z temperaturą 24°C (= T4)
+Wirtualne czujniki (7 sztuk, bo stopień=10):
+- Lewe: pozycje -4m, -2m, 0m, 2m, 4m, 6m, 8m → temperatura -2.3°C (= T1)
+- Prawe: pozycje 552m, 554m, 556m, 558m, 560m, 562m, 564m → temperatura -1.2°C (= T5)
 
 Rezultat:
-- Ekstrapolacja 0-10m: płaska, stabilna temperatura ~22°C
-- Ekstrapolacja 90-100m: płaska, stabilna temperatura ~24°C
-- Brak "górek" i niechcianych oscylacji
+- Ekstrapolacja 0-10m: płaska, stabilna temperatura ~-2.3°C
+- Ekstrapolacja 550-650m: płaska, stabilna temperatura ~-1.2°C
+- Brak "górek" i niechcianych oscylacji nawet dla wielomianu stopnia 10!
 ```
 
 ### Rozdzielczość przestrzenna

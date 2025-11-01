@@ -90,7 +90,7 @@ class InterpolacjaTemperatury:
         ttk.Checkbutton(param_frame, text="Wirtualne czujniki", variable=self.wirtualne_czujniki).grid(row=8, column=1, sticky=tk.W, padx=5)
 
         # Tooltip/opis
-        info_label = ttk.Label(param_frame, text="(płaska ekstrapolacja na skrajach)", font=('TkDefaultFont', 8), foreground='gray')
+        info_label = ttk.Label(param_frame, text="(adaptacyjna liczba czujników)", font=('TkDefaultFont', 8), foreground='gray')
         info_label.grid(row=9, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
 
         # Sekcja 2: Dodawanie czujników
@@ -395,23 +395,28 @@ class InterpolacjaTemperatury:
 
             # Dodanie wirtualnych czujników dla stabilnej ekstrapolacji
             if self.wirtualne_czujniki.get():
-                # Wirtualne czujniki przed pierwszym czujnikiem (wszystkie z tą samą temp.)
-                # Dodajemy 3 wirtualne czujniki dla lepszej stabilizacji
-                if min_czujnik > 0:
-                    for i in range(3, 0, -1):
-                        pozycje = np.insert(pozycje, 0, min_czujnik - i)
-                        temperatury = np.insert(temperatury, 0, temp_pierwszego)
-                    # Zapisz tylko pierwszy do wizualizacji
-                    wirtualne_punkty.append((min_czujnik - 3, temp_pierwszego))
+                # Liczba wirtualnych czujników zależy od stopnia wielomianu
+                # Im wyższy stopień, tym więcej potrzeba czujników stabilizujących
+                num_virtual = max(5, stopien // 2 + 2)  # Minimum 5, więcej dla wyższych stopni
+                spacing = 2  # Odstęp między wirtualnymi czujnikami [m]
 
-                # Wirtualne czujniki za ostatnim czujnikiem (wszystkie z tą samą temp.)
-                # Dodajemy 3 wirtualne czujniki dla lepszej stabilizacji
+                # Wirtualne czujniki przed pierwszym czujnikiem
+                if min_czujnik > 0:
+                    for i in range(num_virtual, 0, -1):
+                        poz = min_czujnik - i * spacing
+                        pozycje = np.insert(pozycje, 0, poz)
+                        temperatury = np.insert(temperatury, 0, temp_pierwszego)
+                    # Zapisz zakres do wizualizacji
+                    wirtualne_punkty.append((min_czujnik - num_virtual * spacing, temp_pierwszego, num_virtual))
+
+                # Wirtualne czujniki za ostatnim czujnikiem
                 if max_czujnik < dlugosc:
-                    for i in range(1, 4):
-                        pozycje = np.append(pozycje, max_czujnik + i)
+                    for i in range(1, num_virtual + 1):
+                        poz = max_czujnik + i * spacing
+                        pozycje = np.append(pozycje, poz)
                         temperatury = np.append(temperatury, temp_ostatniego)
-                    # Zapisz tylko pierwszy do wizualizacji
-                    wirtualne_punkty.append((max_czujnik + 1, temp_ostatniego))
+                    # Zapisz zakres do wizualizacji
+                    wirtualne_punkty.append((max_czujnik + spacing, temp_ostatniego, num_virtual))
 
             # Interpolacja wielomianowa (z wirtualnymi czujnikami jeśli włączone)
             wspolczynniki = np.polyfit(pozycje, temperatury, stopien)
@@ -486,11 +491,11 @@ class InterpolacjaTemperatury:
                            label='Wirtualne czujniki', zorder=4, alpha=0.7)
 
                 # Etykiety dla wirtualnych czujników
-                for i, (poz, temp) in enumerate(wirtualne_punkty):
-                    if poz < 0:
-                        label_text = "Wirt. (lewy)"
+                for i, (poz, temp, num) in enumerate(wirtualne_punkty):
+                    if poz < min_czujnik:
+                        label_text = f"Wirt. L (x{num})"
                     else:
-                        label_text = "Wirt. (prawy)"
+                        label_text = f"Wirt. P (x{num})"
                     self.ax.annotate(label_text, (poz, temp),
                                    xytext=(5, 5), textcoords='offset points',
                                    fontsize=7, alpha=0.6, color='green')
@@ -610,14 +615,24 @@ class InterpolacjaTemperatury:
             wzor += "WIRTUALNE CZUJNIKI:\n"
             wzor += f"Temperatura pierwszego czujnika: {temp_pierwszego:.2f} °C\n"
             wzor += f"Temperatura ostatniego czujnika: {temp_ostatniego:.2f} °C\n"
+
+            # Oblicz liczbę wirtualnych czujników z pierwszego elementu
+            if wirtualne_punkty:
+                num_virt = wirtualne_punkty[0][2]
+                wzor += f"Liczba wirtualnych czujników na każdym końcu: {num_virt}\n"
+
             wzor += "\nPozycje wirtualnych czujników:\n"
-            for poz, temp in wirtualne_punkty:
+            for poz, temp, num in wirtualne_punkty:
                 if poz < min_czujnik:
-                    wzor += f"  • Lewe (pozycje {poz:.0f}, {poz+1:.0f}, {poz+2:.0f} m): {temp:.2f} °C\n"
+                    # Lewe - od poz do min_czujnik, co 2m
+                    pozycje_str = ", ".join([f"{poz + i*2:.0f}" for i in range(num)])
+                    wzor += f"  • Lewe ({num} szt., co 2m): {pozycje_str} m → {temp:.2f} °C\n"
                 else:
-                    wzor += f"  • Prawe (pozycje {poz:.0f}, {poz+1:.0f}, {poz+2:.0f} m): {temp:.2f} °C\n"
-            wzor += "\nℹ Po 3 wirtualne czujniki na każdym końcu zapewniają\n"
-            wzor += "  stabilną, płaską ekstrapolację bez oscylacji."
+                    # Prawe - od poz, co 2m
+                    pozycje_str = ", ".join([f"{poz + i*2:.0f}" for i in range(num)])
+                    wzor += f"  • Prawe ({num} szt., co 2m): {pozycje_str} m → {temp:.2f} °C\n"
+            wzor += "\nℹ Liczba wirtualnych czujników dostosowuje się do stopnia wielomianu.\n"
+            wzor += "  Im wyższy stopień, tym więcej czujników stabilizujących."
 
         # Ostrzeżenie o ekstrapolacji
         if min_czujnik > 0 or max_czujnik < dlugosc:
