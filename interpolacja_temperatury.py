@@ -295,17 +295,23 @@ class InterpolacjaTemperatury:
 
             # Dodanie wirtualnych czujników dla stabilnej ekstrapolacji
             if self.wirtualne_czujniki.get():
-                # Wirtualny czujnik przed pierwszym czujnikiem (ta sama temp. co pierwszy)
+                # Wirtualne czujniki przed pierwszym czujnikiem (wszystkie z tą samą temp.)
+                # Dodajemy 3 wirtualne czujniki dla lepszej stabilizacji
                 if min_czujnik > 0:
-                    pozycje = np.insert(pozycje, 0, -1)
-                    temperatury = np.insert(temperatury, 0, temp_pierwszego)
-                    wirtualne_punkty.append((-1, temp_pierwszego))
+                    for i in range(3, 0, -1):
+                        pozycje = np.insert(pozycje, 0, min_czujnik - i)
+                        temperatury = np.insert(temperatury, 0, temp_pierwszego)
+                    # Zapisz tylko pierwszy do wizualizacji
+                    wirtualne_punkty.append((min_czujnik - 3, temp_pierwszego))
 
-                # Wirtualny czujnik za ostatnim czujnikiem (ta sama temp. co ostatni)
+                # Wirtualne czujniki za ostatnim czujnikiem (wszystkie z tą samą temp.)
+                # Dodajemy 3 wirtualne czujniki dla lepszej stabilizacji
                 if max_czujnik < dlugosc:
-                    pozycje = np.append(pozycje, dlugosc + 1)
-                    temperatury = np.append(temperatury, temp_ostatniego)
-                    wirtualne_punkty.append((dlugosc + 1, temp_ostatniego))
+                    for i in range(1, 4):
+                        pozycje = np.append(pozycje, max_czujnik + i)
+                        temperatury = np.append(temperatury, temp_ostatniego)
+                    # Zapisz tylko pierwszy do wizualizacji
+                    wirtualne_punkty.append((max_czujnik + 1, temp_ostatniego))
 
             # Interpolacja wielomianowa (z wirtualnymi czujnikami jeśli włączone)
             wspolczynniki = np.polyfit(pozycje, temperatury, stopien)
@@ -506,12 +512,12 @@ class InterpolacjaTemperatury:
             wzor += f"Temperatura ostatniego czujnika: {temp_ostatniego:.2f} °C\n"
             wzor += "\nPozycje wirtualnych czujników:\n"
             for poz, temp in wirtualne_punkty:
-                if poz < 0:
-                    wzor += f"  • Lewy (pozycja -1 m): {temp:.2f} °C (= pierwszy czujnik)\n"
+                if poz < min_czujnik:
+                    wzor += f"  • Lewe (pozycje {poz:.0f}, {poz+1:.0f}, {poz+2:.0f} m): {temp:.2f} °C\n"
                 else:
-                    wzor += f"  • Prawy (pozycja {poz:.0f} m): {temp:.2f} °C (= ostatni czujnik)\n"
-            wzor += "\nℹ Wirtualne czujniki stabilizują ekstrapolację,\n"
-            wzor += "  tworząc 'płaski' przebieg na skrajach światłowodu."
+                    wzor += f"  • Prawe (pozycje {poz:.0f}, {poz+1:.0f}, {poz+2:.0f} m): {temp:.2f} °C\n"
+            wzor += "\nℹ Po 3 wirtualne czujniki na każdym końcu zapewniają\n"
+            wzor += "  stabilną, płaską ekstrapolację bez oscylacji."
 
         # Ostrzeżenie o ekstrapolacji
         if min_czujnik > 0 or max_czujnik < dlugosc:

@@ -213,22 +213,31 @@ Wielomian będzie "rozciągnięty" poza zakres czujników, ale wyniki w obszarac
 ### Wirtualne czujniki (NOWOŚĆ!)
 
 **Co to jest?**
-- Automatycznie dodawane punkty referencyjne przed pierwszym i za ostatnim czujnikiem
-- **Lewy wirtualny czujnik** ma temperaturę równą **pierwszemu rzeczywistemu czujnikowi**
-- **Prawy wirtualny czujnik** ma temperaturę równą **ostatniemu rzeczywistemu czujnikowi**
-- Umieszczone na pozycjach: **-1 m** (lewy) i **(długość światłowodu + 1) m** (prawy)
+- Automatycznie dodawane **3 punkty referencyjne** przed pierwszym i **3 za ostatnim** czujnikiem
+- **Lewe wirtualne czujniki** (wszystkie 3) mają temperaturę równą **pierwszemu rzeczywistemu czujnikowi**
+- **Prawe wirtualne czujniki** (wszystkie 3) mają temperaturę równą **ostatniemu rzeczywistemu czujnikowi**
+- Umieszczone na pozycjach:
+  - Lewe: **(min_czujnik - 3), (min_czujnik - 2), (min_czujnik - 1) m**
+  - Prawe: **(max_czujnik + 1), (max_czujnik + 2), (max_czujnik + 3) m**
 
 **Dlaczego warto używać?**
 - **Tworzą płaską ekstrapolację** - temperatura pozostaje stabilna poza zakresem pomiarów
-- Zapobiegają dzikim oscylacjom wielomianu w obszarach ekstrapolacji
-- Szczególnie przydatne dla wielomianów wyższych stopni
+- **Zapobiegają "górkom" i oscylacjom** wielomianu w obszarach ekstrapolacji
+- Szczególnie przydatne dla wielomianów wyższych stopni (3+)
+- **3 czujniki na każdym końcu** to minimalana liczba gwarantująca stabilność
 - Odzwierciedlają realistyczne założenie, że temperatura przed pierwszym i za ostatnim czujnikiem jest podobna do skrajnych pomiarów
+
+**Dlaczego 3 czujniki?**
+- 1 wirtualny czujnik: wielomian może tworzyć "górkę" między skrajnym a wirtualnym
+- 2 wirtualne czujniki: może wystąpić minimalna oscylacja
+- **3 wirtualne czujniki: zapewniają stabilną, płaską ekstrapolację** ✅
 
 **Kiedy używać?**
 - ✅ **Włączone domyślnie** - zalecane dla większości zastosowań
 - ✅ Gdy oczekujesz płaskiego przebiegu temperatury na skrajach
 - ✅ Gdy pierwszy czujnik nie jest na pozycji 0 m lub ostatni nie na końcu światłowodu
 - ✅ Gdy temperatura prawdopodobnie nie zmienia się gwałtownie poza obszarem pomiarów
+- ✅ Dla wielomianów stopnia 3 i wyższych
 - ❌ Wyłącz, jeśli wiesz, że temperatura zmienia się znacząco poza zakresem czujników
 
 **Przykład:**
@@ -237,12 +246,13 @@ Długość światłowodu: 100 m
 Czujniki: T1=10m (22°C), T2=30m (35°C), T3=60m (28°C), T4=90m (24°C)
 
 Wirtualne czujniki:
-- Lewy: pozycja -1 m, temperatura 22°C (= pierwszy czujnik T1)
-- Prawy: pozycja 101 m, temperatura 24°C (= ostatni czujnik T4)
+- Lewe: pozycje 7m, 8m, 9m - wszystkie z temperaturą 22°C (= T1)
+- Prawe: pozycje 91m, 92m, 93m - wszystkie z temperaturą 24°C (= T4)
 
 Rezultat:
-- Ekstrapolacja 0-10m: płynnie zbliża się do ~22°C
-- Ekstrapolacja 90-100m: płynnie zbliża się do ~24°C
+- Ekstrapolacja 0-10m: płaska, stabilna temperatura ~22°C
+- Ekstrapolacja 90-100m: płaska, stabilna temperatura ~24°C
+- Brak "górek" i niechcianych oscylacji
 ```
 
 ### Rozdzielczość przestrzenna
