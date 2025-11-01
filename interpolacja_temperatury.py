@@ -286,13 +286,14 @@ class InterpolacjaTemperatury:
             min_czujnik = pozycje.min()
             max_czujnik = pozycje.max()
 
+            # Oblicz średnią temperaturę z rzeczywistych czujników
+            srednia_temp = temperatury.mean()
+
             # Lista wirtualnych czujników do wizualizacji
             wirtualne_punkty = []
 
             # Dodanie wirtualnych czujników dla stabilnej ekstrapolacji
             if self.wirtualne_czujniki.get():
-                srednia_temp = temperatury.mean()
-
                 # Wirtualny czujnik przed pierwszym czujnikiem
                 if min_czujnik > 0:
                     pozycje = np.insert(pozycje, 0, -1)
@@ -311,7 +312,7 @@ class InterpolacjaTemperatury:
 
             # Generowanie wzoru wielomianu
             wzor = self.generuj_wzor_wielomianu(wspolczynniki, min_czujnik, max_czujnik, dlugosc,
-                                                 wirtualne_punkty, rzeczywiste_temp.mean() if wirtualne_punkty else None)
+                                                 wirtualne_punkty, srednia_temp if wirtualne_punkty else None)
 
             # Wyświetlenie wzoru
             self.wzor_text.delete(1.0, tk.END)
