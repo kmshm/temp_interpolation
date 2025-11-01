@@ -5,11 +5,12 @@ Aplikacja do interpolacji temperatury na długości czujnika światłowodowego
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext
+from tkinter import ttk, messagebox, scrolledtext, filedialog
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+import csv
 
 
 class InterpolacjaTemperatury:
@@ -131,8 +132,18 @@ class InterpolacjaTemperatury:
         scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
         self.czujniki_tree.configure(yscrollcommand=scrollbar.set)
 
-        ttk.Button(lista_frame, text="Usuń Zaznaczony",
-                  command=self.usun_czujnik).grid(row=1, column=0, pady=5)
+        # Przyciski zarządzania
+        button_frame = ttk.Frame(lista_frame)
+        button_frame.grid(row=1, column=0, columnspan=2, pady=5, sticky=(tk.W, tk.E))
+
+        ttk.Button(button_frame, text="Usuń Zaznaczony",
+                  command=self.usun_czujnik).grid(row=0, column=0, padx=2, sticky=(tk.W, tk.E))
+
+        ttk.Button(button_frame, text="Importuj z CSV",
+                  command=self.importuj_csv).grid(row=0, column=1, padx=2, sticky=(tk.W, tk.E))
+
+        button_frame.columnconfigure(0, weight=1)
+        button_frame.columnconfigure(1, weight=1)
 
         # Sekcja 4: Akcje
         akcje_frame = ttk.Frame(left_frame)
@@ -232,6 +243,95 @@ class InterpolacjaTemperatury:
         # Usunięcie z listy i widoku
         del self.czujniki[index]
         self.czujniki_tree.delete(selected[0])
+
+    def importuj_csv(self):
+        """Importuje czujniki z pliku CSV"""
+        # Okno wyboru pliku
+        file_path = filedialog.askopenfilename(
+            title="Wybierz plik CSV",
+            filetypes=[("Pliki CSV", "*.csv"), ("Wszystkie pliki", "*.*")]
+        )
+
+        if not file_path:
+            return  # Użytkownik anulował
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                reader = csv.reader(f)
+
+                # Próba odczytania pierwszego wiersza
+                first_row = next(reader, None)
+                if not first_row:
+                    messagebox.showerror("Błąd", "Plik CSV jest pusty!")
+                    return
+
+                # Sprawdź czy pierwszy wiersz to nagłówek
+                is_header = False
+                try:
+                    # Jeśli druga kolumna nie jest liczbą, to prawdopodobnie nagłówek
+                    float(first_row[1])
+                except (ValueError, IndexError):
+                    is_header = True
+
+                # Licznik dodanych czujników
+                count = 0
+                errors = []
+
+                # Jeśli nie był to nagłówek, przetwórz pierwszy wiersz
+                if not is_header:
+                    try:
+                        nazwa, pozycja, temperatura = self._parsuj_wiersz_csv(first_row)
+                        self._dodaj_czujnik_z_danych(nazwa, pozycja, temperatura)
+                        count += 1
+                    except Exception as e:
+                        errors.append(f"Wiersz 1: {str(e)}")
+
+                # Przetwórz pozostałe wiersze
+                for i, row in enumerate(reader, start=2 if not is_header else 1):
+                    if not row or len(row) < 3:
+                        continue  # Pomiń puste wiersze
+
+                    try:
+                        nazwa, pozycja, temperatura = self._parsuj_wiersz_csv(row)
+                        self._dodaj_czujnik_z_danych(nazwa, pozycja, temperatura)
+                        count += 1
+                    except Exception as e:
+                        errors.append(f"Wiersz {i}: {str(e)}")
+
+                # Pokaż wynik
+                message = f"Zaimportowano {count} czujników."
+                if errors:
+                    message += f"\n\nBłędy ({len(errors)}):\n" + "\n".join(errors[:5])
+                    if len(errors) > 5:
+                        message += f"\n... i {len(errors)-5} więcej"
+                    messagebox.showwarning("Import zakończony z błędami", message)
+                else:
+                    messagebox.showinfo("Sukces", message)
+
+        except Exception as e:
+            messagebox.showerror("Błąd", f"Nie udało się wczytać pliku:\n{str(e)}")
+
+    def _parsuj_wiersz_csv(self, row):
+        """Parsuje wiersz CSV i zwraca (nazwa, pozycja, temperatura)"""
+        if len(row) < 3:
+            raise ValueError("Wiersz musi zawierać co najmniej 3 kolumny")
+
+        nazwa = row[0].strip()
+        pozycja = float(row[1].strip())
+        temperatura = float(row[2].strip())
+
+        return nazwa, pozycja, temperatura
+
+    def _dodaj_czujnik_z_danych(self, nazwa, pozycja, temperatura):
+        """Dodaje czujnik z podanych danych (bez walidacji długości)"""
+        if not nazwa:
+            raise ValueError("Nazwa czujnika nie może być pusta")
+
+        # Dodanie czujnika
+        self.czujniki.append((nazwa, pozycja, temperatura))
+
+        # Aktualizacja widoku
+        self.czujniki_tree.insert("", tk.END, values=(nazwa, pozycja, temperatura))
 
     def wyczysc_wszystko(self):
         """Czyści wszystkie dane"""

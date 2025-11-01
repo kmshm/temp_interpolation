@@ -6,7 +6,7 @@ Aplikacja z graficznym interfejsem użytkownika (GUI) służąca do interpolacji
 
 ## Funkcjonalności
 
-- Dodawanie punktowych czujników temperatury z określoną pozycją i odczytem
+- Dodawanie punktowych czujników temperatury ręcznie lub **import masowy z pliku CSV**
 - Ustawianie parametrów światłowodu (długość, rozdzielczość przestrzenna)
 - Wybór dowolnego stopnia wielomianu interpolacyjnego
 - Automatyczne obliczanie współczynników wielomianu interpolacyjnego
@@ -108,6 +108,8 @@ W sekcji "Parametry Światłowodu" wprowadź:
 
 ### 2. Dodawanie czujników
 
+#### Sposób 1: Ręczne dodawanie pojedynczych czujników
+
 W sekcji "Dodaj Czujnik":
 - Wprowadź **nazwę czujnika** (np. T1, T2, Sensor_A)
 - Podaj **pozycję [m]** na światłowodzie (np. 10, 25.5)
@@ -115,6 +117,41 @@ W sekcji "Dodaj Czujnik":
 - Kliknij "Dodaj Czujnik"
 
 Czujnik pojawi się na liście w sekcji "Lista Czujników".
+
+#### Sposób 2: Import z pliku CSV (NOWOŚĆ!)
+
+Zamiast ręcznego wpisywania każdego czujnika, możesz zaimportować wszystkie dane z pliku CSV:
+
+1. Przygotuj plik CSV z 3 kolumnami: **nazwa**, **pozycja**, **temperatura**
+2. W sekcji "Lista Czujników" kliknij **"Importuj z CSV"**
+3. Wybierz swój plik CSV
+4. Aplikacja automatycznie doda wszystkie czujniki do listy
+
+**Format pliku CSV:**
+
+Z nagłówkiem (zalecane):
+```csv
+nazwa,pozycja,temperatura
+T1,10,22.0
+T2,30,35.0
+T3,60,28.0
+T4,90,24.0
+```
+
+Bez nagłówka (również działa):
+```csv
+T1,10,22.0
+T2,30,35.0
+T3,60,28.0
+T4,90,24.0
+```
+
+**Uwagi:**
+- Separator: przecinek `,`
+- Kodowanie: UTF-8
+- Aplikacja automatycznie wykrywa czy pierwszy wiersz to nagłówek
+- Błędne wiersze są pomijane, a po imporcie wyświetlany jest raport
+- Plik przykładowy: `przyklad_czujniki.csv` (dołączony do projektu)
 
 ### 3. Zarządzanie czujnikami
 
