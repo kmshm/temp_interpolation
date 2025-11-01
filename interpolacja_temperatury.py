@@ -165,7 +165,7 @@ class InterpolacjaTemperatury:
         wzor_frame = ttk.LabelFrame(right_frame, text="Wzór Wielomianu Interpolacyjnego", padding="10")
         wzor_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=5)
 
-        self.wzor_text = scrolledtext.ScrolledText(wzor_frame, height=6, width=60, wrap=tk.WORD)
+        self.wzor_text = scrolledtext.ScrolledText(wzor_frame, height=12, width=80, wrap=tk.WORD)
         self.wzor_text.grid(row=0, column=0, sticky=(tk.W, tk.E))
         wzor_frame.columnconfigure(0, weight=1)
 
@@ -594,6 +594,42 @@ class InterpolacjaTemperatury:
 
         # Dodanie informacji o dokładności
         wzor += f"\nStopień wielomianu: {stopien}\n"
+
+        # WZÓR DLA EXCELA - pełny wzór ze wszystkimi współczynnikami
+        wzor += "\n" + "="*50 + "\n"
+        wzor += "WZÓR DLA EXCELA (x w komórce A2):\n"
+        wzor += "="*50 + "\n"
+
+        # Buduj wzór dla Excela
+        excel_parts = []
+        for i, wsp in enumerate(wspolczynniki):
+            wykladnik = stopien - i
+
+            # Formatuj współczynnik w notacji naukowej
+            if wykladnik == 0:
+                # Wyraz wolny
+                excel_parts.append(f"{wsp:.10E}")
+            elif wykladnik == 1:
+                # x do potęgi 1
+                if wsp >= 0:
+                    excel_parts.append(f"+{wsp:.10E}*A2")
+                else:
+                    excel_parts.append(f"{wsp:.10E}*A2")
+            else:
+                # x do wyższych potęg
+                if wsp >= 0:
+                    excel_parts.append(f"+{wsp:.10E}*A2^{wykladnik}")
+                else:
+                    excel_parts.append(f"{wsp:.10E}*A2^{wykladnik}")
+
+        # Złóż wzór (usuwając początkowy + jeśli występuje)
+        excel_formula = "".join(excel_parts)
+        if excel_formula.startswith("+"):
+            excel_formula = excel_formula[1:]
+
+        wzor += f"={excel_formula}\n"
+        wzor += "\nSkopiuj powyższy wzór do Excela (zakładając że pozycja [m]\n"
+        wzor += "znajduje się w kolumnie A, wiersz 2). Zmień A2 na odpowiednią komórkę."
 
         # Informacje o zakresach
         wzor += "\n" + "="*50 + "\n"
