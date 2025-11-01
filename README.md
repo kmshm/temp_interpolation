@@ -12,7 +12,7 @@ Aplikacja z graficznym interfejsem użytkownika (GUI) służąca do interpolacji
 - Automatyczne obliczanie współczynników wielomianu interpolacyjnego
 - Wyświetlanie wzoru wielomianu w formie tekstowej z informacją o zakresach
 - **Wsparcie dla ekstrapolacji** - możliwość prognozowania temperatury poza zakresem czujników
-- **Wirtualne czujniki** - automatyczne dodawanie punktów referencyjnych dla stabilnej ekstrapolacji
+- **Wirtualne czujniki** - automatyczne dodawanie punktów referencyjnych dla płaskiej ekstrapolacji (temp. = skrajne czujniki)
 - **Wizualne oznaczenie obszarów interpolacji i ekstrapolacji** na wykresie
 - **Ręczne ustawianie skali osi Y** dla lepszej kontroli nad wizualizacją
 - Wizualizacja graficzna rozkładu temperatury na wykresie z odróżnieniem rzeczywistych i wirtualnych czujników
@@ -101,8 +101,10 @@ W sekcji "Parametry Światłowodu" wprowadź:
   - Zaznacz "Automatyczna" dla automatycznego dopasowania skali (domyślnie)
   - Odznacz, aby ręcznie ustawić **Y min** i **Y max** w stopniach Celsjusza
 - **Ekstrapolacja**:
-  - Zaznacz "Wirtualne czujniki" (domyślnie włączone) dla stabilnej ekstrapolacji
-  - Wirtualne czujniki dodają punkty referencyjne ze średnią temperaturą przed i za obszarem pomiarów
+  - Zaznacz "Wirtualne czujniki" (domyślnie włączone) dla płaskiej ekstrapolacji
+  - Wirtualne czujniki dodają punkty referencyjne przed i za obszarem pomiarów
+  - Wirtualny czujnik lewy ma temperaturę pierwszego czujnika
+  - Wirtualny czujnik prawy ma temperaturę ostatniego czujnika
 
 ### 2. Dodawanie czujników
 
@@ -212,32 +214,35 @@ Wielomian będzie "rozciągnięty" poza zakres czujników, ale wyniki w obszarac
 
 **Co to jest?**
 - Automatycznie dodawane punkty referencyjne przed pierwszym i za ostatnim czujnikiem
-- Mają temperaturę równą **średniej arytmetycznej** wszystkich rzeczywistych pomiarów
+- **Lewy wirtualny czujnik** ma temperaturę równą **pierwszemu rzeczywistemu czujnikowi**
+- **Prawy wirtualny czujnik** ma temperaturę równą **ostatniemu rzeczywistemu czujnikowi**
 - Umieszczone na pozycjach: **-1 m** (lewy) i **(długość światłowodu + 1) m** (prawy)
 
 **Dlaczego warto używać?**
-- **Stabilizują ekstrapolację** - zapobiegają dzikim oscylacjom wielomianu
-- Temperatura w obszarach ekstrapolacji zbliża się do wartości średniej (zakładamy stabilną temperaturę)
+- **Tworzą płaską ekstrapolację** - temperatura pozostaje stabilna poza zakresem pomiarów
+- Zapobiegają dzikim oscylacjom wielomianu w obszarach ekstrapolacji
 - Szczególnie przydatne dla wielomianów wyższych stopni
-- Odzwierciedlają realistyczne założenie o stosunkowo stałej temperaturze na światłowodzie
+- Odzwierciedlają realistyczne założenie, że temperatura przed pierwszym i za ostatnim czujnikiem jest podobna do skrajnych pomiarów
 
 **Kiedy używać?**
 - ✅ **Włączone domyślnie** - zalecane dla większości zastosowań
-- ✅ Gdy temperatura na światłowodzie jest relatywnie stabilna
+- ✅ Gdy oczekujesz płaskiego przebiegu temperatury na skrajach
 - ✅ Gdy pierwszy czujnik nie jest na pozycji 0 m lub ostatni nie na końcu światłowodu
-- ❌ Wyłącz, jeśli znasz dokładne wartości temperatury na początku/końcu
+- ✅ Gdy temperatura prawdopodobnie nie zmienia się gwałtownie poza obszarem pomiarów
+- ❌ Wyłącz, jeśli wiesz, że temperatura zmienia się znacząco poza zakresem czujników
 
 **Przykład:**
 ```
 Długość światłowodu: 100 m
 Czujniki: T1=10m (22°C), T2=30m (35°C), T3=60m (28°C), T4=90m (24°C)
-Średnia temperatura: 27.25°C
 
 Wirtualne czujniki:
-- Lewy: pozycja -1 m, temperatura 27.25°C
-- Prawy: pozycja 101 m, temperatura 27.25°C
+- Lewy: pozycja -1 m, temperatura 22°C (= pierwszy czujnik T1)
+- Prawy: pozycja 101 m, temperatura 24°C (= ostatni czujnik T4)
 
-Rezultat: płynna ekstrapolacja zbliżająca się do ~27°C
+Rezultat:
+- Ekstrapolacja 0-10m: płynnie zbliża się do ~22°C
+- Ekstrapolacja 90-100m: płynnie zbliża się do ~24°C
 ```
 
 ### Rozdzielczość przestrzenna
