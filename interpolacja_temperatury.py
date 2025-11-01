@@ -80,6 +80,18 @@ class InterpolacjaTemperatury:
         self.y_max_entry = ttk.Entry(param_frame, textvariable=self.y_max_var, width=15, state='disabled')
         self.y_max_entry.grid(row=6, column=1, padx=5)
 
+        # Separator
+        ttk.Separator(param_frame, orient='horizontal').grid(row=7, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
+
+        # Opcje ekstrapolacji
+        ttk.Label(param_frame, text="Ekstrapolacja:").grid(row=8, column=0, sticky=tk.W)
+        self.wirtualne_czujniki = tk.BooleanVar(value=True)
+        ttk.Checkbutton(param_frame, text="Wirtualne czujniki", variable=self.wirtualne_czujniki).grid(row=8, column=1, sticky=tk.W, padx=5)
+
+        # Tooltip/opis
+        info_label = ttk.Label(param_frame, text="(dodaje punkty ze średnią temp.)", font=('TkDefaultFont', 8), foreground='gray')
+        info_label.grid(row=9, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+
         # Sekcja 2: Dodawanie czujników
         czujnik_frame = ttk.LabelFrame(left_frame, text="Dodaj Czujnik", padding="10")
         czujnik_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=5)
@@ -270,16 +282,36 @@ class InterpolacjaTemperatury:
             pozycje = np.array([c[1] for c in czujniki_sorted])
             temperatury = np.array([c[2] for c in czujniki_sorted])
 
-            # Interpolacja wielomianowa
-            wspolczynniki = np.polyfit(pozycje, temperatury, stopien)
-            wielomian = np.poly1d(wspolczynniki)
-
-            # Określenie zakresów interpolacji i ekstrapolacji
+            # Określenie zakresów rzeczywistych czujników (przed dodaniem wirtualnych)
             min_czujnik = pozycje.min()
             max_czujnik = pozycje.max()
 
+            # Lista wirtualnych czujników do wizualizacji
+            wirtualne_punkty = []
+
+            # Dodanie wirtualnych czujników dla stabilnej ekstrapolacji
+            if self.wirtualne_czujniki.get():
+                srednia_temp = temperatury.mean()
+
+                # Wirtualny czujnik przed pierwszym czujnikiem
+                if min_czujnik > 0:
+                    pozycje = np.insert(pozycje, 0, -1)
+                    temperatury = np.insert(temperatury, 0, srednia_temp)
+                    wirtualne_punkty.append((-1, srednia_temp))
+
+                # Wirtualny czujnik za ostatnim czujnikiem
+                if max_czujnik < dlugosc:
+                    pozycje = np.append(pozycje, dlugosc + 1)
+                    temperatury = np.append(temperatury, srednia_temp)
+                    wirtualne_punkty.append((dlugosc + 1, srednia_temp))
+
+            # Interpolacja wielomianowa (z wirtualnymi czujnikami jeśli włączone)
+            wspolczynniki = np.polyfit(pozycje, temperatury, stopien)
+            wielomian = np.poly1d(wspolczynniki)
+
             # Generowanie wzoru wielomianu
-            wzor = self.generuj_wzor_wielomianu(wspolczynniki, min_czujnik, max_czujnik, dlugosc)
+            wzor = self.generuj_wzor_wielomianu(wspolczynniki, min_czujnik, max_czujnik, dlugosc,
+                                                 wirtualne_punkty, rzeczywiste_temp.mean() if wirtualne_punkty else None)
 
             # Wyświetlenie wzoru
             self.wzor_text.delete(1.0, tk.END)
@@ -326,14 +358,34 @@ class InterpolacjaTemperatury:
                 self.ax.plot(x_interpol[mask_ekstra_right], y_interpol[mask_ekstra_right],
                            'b--', linewidth=2, alpha=0.7)
 
-            # Punkty pomiarowe
-            self.ax.plot(pozycje, temperatury, 'ro', markersize=8, label='Pomiary czujników', zorder=5)
+            # Punkty pomiarowe (rzeczywiste czujniki)
+            rzeczywiste_poz = np.array([c[1] for c in czujniki_sorted])
+            rzeczywiste_temp = np.array([c[2] for c in czujniki_sorted])
+            self.ax.plot(rzeczywiste_poz, rzeczywiste_temp, 'ro', markersize=8,
+                        label='Pomiary czujników', zorder=5)
 
             # Dodanie etykiet do punktów pomiarowych
             for nazwa, poz, temp in czujniki_sorted:
                 self.ax.annotate(nazwa, (poz, temp),
                                xytext=(5, 5), textcoords='offset points',
                                fontsize=8, alpha=0.7)
+
+            # Wirtualne czujniki (jeśli używane)
+            if wirtualne_punkty:
+                wirt_poz = [p[0] for p in wirtualne_punkty]
+                wirt_temp = [p[1] for p in wirtualne_punkty]
+                self.ax.plot(wirt_poz, wirt_temp, 'gs', markersize=8,
+                           label='Wirtualne czujniki', zorder=4, alpha=0.7)
+
+                # Etykiety dla wirtualnych czujników
+                for i, (poz, temp) in enumerate(wirtualne_punkty):
+                    if poz < 0:
+                        label_text = "Wirt. (lewy)"
+                    else:
+                        label_text = "Wirt. (prawy)"
+                    self.ax.annotate(label_text, (poz, temp),
+                                   xytext=(5, 5), textcoords='offset points',
+                                   fontsize=7, alpha=0.6, color='green')
 
             # Pionowe linie na pozycjach skrajnych czujników
             self.ax.axvline(min_czujnik, color='gray', linestyle=':', alpha=0.5, linewidth=1)
@@ -375,7 +427,8 @@ class InterpolacjaTemperatury:
         except Exception as e:
             messagebox.showerror("Błąd", f"Wystąpił błąd: {str(e)}")
 
-    def generuj_wzor_wielomianu(self, wspolczynniki, min_czujnik, max_czujnik, dlugosc):
+    def generuj_wzor_wielomianu(self, wspolczynniki, min_czujnik, max_czujnik, dlugosc,
+                                 wirtualne_punkty=None, srednia_temp=None):
         """Generuje tekstowy wzór wielomianu"""
         stopien = len(wspolczynniki) - 1
         wzor_parts = ["T(x) = "]
@@ -443,9 +496,23 @@ class InterpolacjaTemperatury:
 
         wzor += f"\nInterpolacja: {min_czujnik} - {max_czujnik} m\n"
 
+        # Informacje o wirtualnych czujnikach
+        if wirtualne_punkty:
+            wzor += "\n" + "="*50 + "\n"
+            wzor += "WIRTUALNE CZUJNIKI:\n"
+            wzor += f"Średnia temperatura: {srednia_temp:.2f} °C\n"
+            wzor += "Pozycje wirtualnych czujników:\n"
+            for poz, temp in wirtualne_punkty:
+                if poz < 0:
+                    wzor += f"  • Lewy (pozycja -1 m): {temp:.2f} °C\n"
+                else:
+                    wzor += f"  • Prawy (pozycja {poz:.0f} m): {temp:.2f} °C\n"
+            wzor += "\nℹ Wirtualne czujniki stabilizują ekstrapolację,\n"
+            wzor += "  zbliżając wartości temperatury do średniej."
+
         # Ostrzeżenie o ekstrapolacji
         if min_czujnik > 0 or max_czujnik < dlugosc:
-            wzor += "\n⚠ UWAGA: Wyniki w obszarach ekstrapolacji mogą być\n"
+            wzor += "\n\n⚠ UWAGA: Wyniki w obszarach ekstrapolacji mogą być\n"
             wzor += "  mniej dokładne niż w obszarze między czujnikami!"
 
         return wzor

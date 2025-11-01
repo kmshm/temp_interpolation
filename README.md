@@ -12,9 +12,10 @@ Aplikacja z graficznym interfejsem użytkownika (GUI) służąca do interpolacji
 - Automatyczne obliczanie współczynników wielomianu interpolacyjnego
 - Wyświetlanie wzoru wielomianu w formie tekstowej z informacją o zakresach
 - **Wsparcie dla ekstrapolacji** - możliwość prognozowania temperatury poza zakresem czujników
+- **Wirtualne czujniki** - automatyczne dodawanie punktów referencyjnych dla stabilnej ekstrapolacji
 - **Wizualne oznaczenie obszarów interpolacji i ekstrapolacji** na wykresie
 - **Ręczne ustawianie skali osi Y** dla lepszej kontroli nad wizualizacją
-- Wizualizacja graficzna rozkładu temperatury na wykresie
+- Wizualizacja graficzna rozkładu temperatury na wykresie z odróżnieniem rzeczywistych i wirtualnych czujników
 - Zarządzanie listą czujników (dodawanie, usuwanie)
 
 ## Wymagania
@@ -99,6 +100,9 @@ W sekcji "Parametry Światłowodu" wprowadź:
 - **Skala osi Y**:
   - Zaznacz "Automatyczna" dla automatycznego dopasowania skali (domyślnie)
   - Odznacz, aby ręcznie ustawić **Y min** i **Y max** w stopniach Celsjusza
+- **Ekstrapolacja**:
+  - Zaznacz "Wirtualne czujniki" (domyślnie włączone) dla stabilnej ekstrapolacji
+  - Wirtualne czujniki dodają punkty referencyjne ze średnią temperaturą przed i za obszarem pomiarów
 
 ### 2. Dodawanie czujników
 
@@ -133,10 +137,11 @@ W sekcji "Wzór Wielomianu Interpolacyjnego" zobaczysz:
 
 Na wykresie:
 - **Czerwone kropki**: rzeczywiste pomiary z czujników z etykietami nazw
+- **Zielone kwadraty**: wirtualne czujniki (jeśli włączone) z etykietami "Wirt. (lewy)" i "Wirt. (prawy)"
 - **Niebieska linia ciągła**: krzywa w obszarze interpolacji (między czujnikami)
 - **Niebieska linia przerywana**: krzywa w obszarach ekstrapolacji
 - **Pomarańczowe zacieniowanie**: obszary ekstrapolacji
-- **Szare pionowe linie kropkowane**: granice zakresu czujników (min i max)
+- **Szare pionowe linie kropkowane**: granice zakresu rzeczywistych czujników (min i max)
 
 ## Przykłady użycia
 
@@ -198,9 +203,42 @@ Wielomian będzie "rozciągnięty" poza zakres czujników, ale wyniki w obszarac
 - Im dalej od skrajnych czujników, tym większa niepewność
 - Wielomiany wysokich stopni mogą dawać nierealistyczne wyniki w ekstrapolacji
 - **Dobre praktyki**:
+  - Używaj **wirtualnych czujników** dla stabilnej ekstrapolacji (zalecane!)
   - Używaj niższych stopni wielomianu przy ekstrapolacji (2-3)
   - Nie ekstrapoluj zbyt daleko poza zakres czujników
   - Zawsze weryfikuj, czy wyniki mają sens fizyczny
+
+### Wirtualne czujniki (NOWOŚĆ!)
+
+**Co to jest?**
+- Automatycznie dodawane punkty referencyjne przed pierwszym i za ostatnim czujnikiem
+- Mają temperaturę równą **średniej arytmetycznej** wszystkich rzeczywistych pomiarów
+- Umieszczone na pozycjach: **-1 m** (lewy) i **(długość światłowodu + 1) m** (prawy)
+
+**Dlaczego warto używać?**
+- **Stabilizują ekstrapolację** - zapobiegają dzikim oscylacjom wielomianu
+- Temperatura w obszarach ekstrapolacji zbliża się do wartości średniej (zakładamy stabilną temperaturę)
+- Szczególnie przydatne dla wielomianów wyższych stopni
+- Odzwierciedlają realistyczne założenie o stosunkowo stałej temperaturze na światłowodzie
+
+**Kiedy używać?**
+- ✅ **Włączone domyślnie** - zalecane dla większości zastosowań
+- ✅ Gdy temperatura na światłowodzie jest relatywnie stabilna
+- ✅ Gdy pierwszy czujnik nie jest na pozycji 0 m lub ostatni nie na końcu światłowodu
+- ❌ Wyłącz, jeśli znasz dokładne wartości temperatury na początku/końcu
+
+**Przykład:**
+```
+Długość światłowodu: 100 m
+Czujniki: T1=10m (22°C), T2=30m (35°C), T3=60m (28°C), T4=90m (24°C)
+Średnia temperatura: 27.25°C
+
+Wirtualne czujniki:
+- Lewy: pozycja -1 m, temperatura 27.25°C
+- Prawy: pozycja 101 m, temperatura 27.25°C
+
+Rezultat: płynna ekstrapolacja zbliżająca się do ~27°C
+```
 
 ### Rozdzielczość przestrzenna
 
