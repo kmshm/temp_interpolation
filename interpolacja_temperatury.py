@@ -110,8 +110,18 @@ class InterpolacjaTemperatury:
         self.temperatura_var = tk.StringVar()
         ttk.Entry(czujnik_frame, textvariable=self.temperatura_var, width=15).grid(row=2, column=1, padx=5)
 
-        ttk.Button(czujnik_frame, text="Dodaj Czujnik",
-                  command=self.dodaj_czujnik).grid(row=3, column=0, columnspan=2, pady=10)
+        # Przyciski dodawania
+        czujnik_buttons = ttk.Frame(czujnik_frame)
+        czujnik_buttons.grid(row=3, column=0, columnspan=2, pady=10)
+
+        ttk.Button(czujnik_buttons, text="Dodaj Czujnik",
+                  command=self.dodaj_czujnik).grid(row=0, column=0, padx=2, sticky=(tk.W, tk.E))
+
+        ttk.Button(czujnik_buttons, text="Importuj z CSV",
+                  command=self.importuj_csv).grid(row=0, column=1, padx=2, sticky=(tk.W, tk.E))
+
+        czujnik_buttons.columnconfigure(0, weight=1)
+        czujnik_buttons.columnconfigure(1, weight=1)
 
         # Sekcja 3: Lista czujników
         lista_frame = ttk.LabelFrame(left_frame, text="Lista Czujników", padding="10")
@@ -138,13 +148,7 @@ class InterpolacjaTemperatury:
         button_frame.grid(row=1, column=0, columnspan=2, pady=5, sticky=(tk.W, tk.E))
 
         ttk.Button(button_frame, text="Usuń Zaznaczony",
-                  command=self.usun_czujnik).grid(row=0, column=0, padx=2, sticky=(tk.W, tk.E))
-
-        ttk.Button(button_frame, text="Importuj z CSV",
-                  command=self.importuj_csv).grid(row=0, column=1, padx=2, sticky=(tk.W, tk.E))
-
-        button_frame.columnconfigure(0, weight=1)
-        button_frame.columnconfigure(1, weight=1)
+                  command=self.usun_czujnik).grid(row=0, column=0, sticky=(tk.W, tk.E))
 
         # Sekcja 3b: Lista wirtualnych czujników
         wirt_lista_frame = ttk.LabelFrame(left_frame, text="Lista Wirtualnych Czujników", padding="10")
